@@ -7,14 +7,15 @@ uma _POC_ referente utilização de multi micro-frontends usando module-federati
 | host | Angular v14.x | 4200 |
 | remote-a | Angular v15.x | 4201 |
 
-### A fazer
+### A fazer / Anotações
 
 - [x] teste de conversão para  _Custom Element_ os projetos _REMOTES_ Angular. ([Angular elements overview](https://angular.io/guide/elements))
   - [x] em `app.module.ts` remote o `AppComponent` de `bootstrap`
   - [x] adiciona em `index.html` remove o antigo e declara a nova tag html que foi definida em `app.module.ts`
   - [x] cria `remote-bootstrap.ts` e o inclui em `files` no arquivo `tsconfig.app.json`.
   - [x] expõem `remote-bootstrap.ts` no `webpack.config.js`
-  - o arquivo final será `../remoteEntry.mjs`, esse nome é fixo usando o `withModuleFederation` de `@nrwl/angular/module-federation`
+  - o arquivo final será `../remoteEntry.mjs`, esse nome é fixo usando o `withModuleFederation` de `@nrwl/angular/module-federation`.
+    > a proposta inicial é não mexer ou adicionar depedencias extras.
 - [x] mescla dados de `module-federation.config.js` com `webpack.config.js`. Depois remove `module-federation.config.js`
 - [ ] teste de host (angular 14.x) consumindo um remote (15.x) com versão superior do framework Angular
 
