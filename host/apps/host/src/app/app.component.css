@@ -1,0 +1,16 @@
+:host {
+  --color-primary: #1abc9c;
+
+
+  border: 2px dashed var(--color-primary);
+  display: block;
+  padding: 16px;
+
+
+
+
+  .label-version{
+    color: var(--color-primary)
+  }
+
+}

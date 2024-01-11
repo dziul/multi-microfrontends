@@ -12,9 +12,8 @@ export class HomeComponent {
 
 
         loadRemoteModule({
-            remoteEntry: 'http://localhost:4201/remoteEntry.mjs',
+            remoteEntry: 'http://localhost:4201/remoteEntry.mjsx',
             exposedModule: './Module',
-            type:'module'
-        })
+        }).then(console.log)
     }
 }

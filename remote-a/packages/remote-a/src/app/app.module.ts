@@ -14,14 +14,19 @@ class EmptyComponent{}
 
 
 
-const routes:Routes = [{
-  path: '',
-  loadChildren: () => import('./features/home').then(m=>m.HomeModule)
-},
-{
-  path: '**',
-  component: EmptyComponent
-}
+const routes:Routes = [
+  {
+    path: '',
+    loadChildren: () => import('./features/home').then(m=>m.HomeModule)
+  },
+  {
+    path: 'plants',
+    loadChildren: () => import('./features/plants').then(m=>m.PlantsModule)
+  },
+  {
+    path: '**',
+    component: EmptyComponent
+  }
 ]
 
 
