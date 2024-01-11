@@ -2,10 +2,19 @@
 
 uma _POC_ referente utilização de multi micro-frontends usando module-federation.
 
-| projeto | framework/lib | porta |
+| projeto | framework/lib |
+| --- | --- |
+| host | Angular v14.x |
+| remote-a | Angular v15.x |
+
+
+### desenvolvimento
+
+| projeto | script |  porta |
 | --- | --- | --- |
-| host | Angular v14.x | 4200 |
-| remote-a | Angular v15.x | 4201 |
+| host | `npm run dev` | 4200 |
+| remote-a | `npm run dev` | 4201 |
+
 
 ### A fazer / Anotações
 
@@ -17,6 +26,7 @@ uma _POC_ referente utilização de multi micro-frontends usando module-federati
   - o arquivo final será `../remoteEntry.mjs`, esse nome é fixo usando o `withModuleFederation` de `@nrwl/angular/module-federation`.
     > a proposta inicial é não mexer ou adicionar depedencias extras.
 - [x] mescla dados de `module-federation.config.js` com `webpack.config.js`. Depois remove `module-federation.config.js`
+- [x] criar/adaptar algorítimo para carregamento de módulo remote. [código de referencia](https://github.com/angular-architects/module-federation-plugin/blob/main/libs/mf-runtime/src/lib/loader/dynamic-federation.ts)
 - [ ] teste de host (angular 14.x) consumindo um remote (15.x) com versão superior do framework Angular
 
   esse teste serve para ver como se comparta quando o _HOST_ possui uma versão menor do _REMOTE_ consumido

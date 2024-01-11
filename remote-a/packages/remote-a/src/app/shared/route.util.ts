@@ -13,336 +13,122 @@ export function startsWith(prefix: string): UrlMatcher {
 
 
 type Scope = unknown;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Factory = () => any;
+type Factory = () => unknown;
 
 type Container = {
-  init(shareScope: Scope): void;
-  get(module: string): Factory;
+  init(shareScope: unknown): Promise<void>;
+  get(module: string): Promise<Factory>;
 };
 
-let config: Manifest = {};
-
-export type ManifestFile<T extends RemoteConfig = RemoteConfig> = {
-  [key: string]: string | T;
-};
-
-export type Manifest<T extends RemoteConfig = RemoteConfig> = {
-  [key: string]: T;
-};
-
-export type RemoteConfig = {
-  type: 'module' | 'script';
+export type LoadRemoveModuleArg = {
   remoteEntry: string;
-  [key: string]: unknown;
+  exposedModule:string
 };
 
 declare const __webpack_init_sharing__: (shareScope: string) => Promise<void>;
 declare const __webpack_share_scopes__: { default: Scope };
 
-type ContainerMap = { [key: string]: Container };
+const containerMap = new Map<string,Container>();
+const remoteMap = new Map<string,unknown>();
+/**
+ * observado que quando há erro no carregamento do módulo por `import` não é possível tentar novamente
+ *  pela mesma URL passada. Solução paliativa é mapear as url que houver erro e na retentativa aplicar
+ *  _Query String_ genérica só para considerar como uma nova URL.
+ */
+const remoteRetryMap = new Map<string,boolean>()
 
-const containerMap: ContainerMap = {};
-const remoteMap:Record<string,any> = {};
-
+/**
+ * sinalizador se deve inicializar o escopo global de compartilhamento
+ */
 let isDefaultScopeInitialized = false;
 
-async function lookupExposedModule<T>(
-  key: string,
-  exposedModule: string
-): Promise<T> {
-  const container = containerMap[key];
-  const factory = await container.get(exposedModule);
-  const Module = factory();
-  return Module as T;
-}
 
+/**
+ * 
+ * @param container Container a ser usado
+ * @param key identificador do cache
+ * @returns carrega e inicializa o Container. Caso exista, o cache é inicializado
+ */
 async function initRemote(container: Container, key: string) {
   // const container = window[key] as Container;
 
-  // Do we still need to initialize the remote?
-  if (remoteMap[key]) {
+  if (remoteMap.get(key)) {
     return container;
   }
 
-  // Do we still need to initialize the share scope?
   if (!isDefaultScopeInitialized) {
     await __webpack_init_sharing__('default');
     isDefaultScopeInitialized = true;
   }
 
   await container.init(__webpack_share_scopes__.default);
-  remoteMap[key] = true;
+  
+  remoteMap.set(key, true);
+  
   return container;
 }
 
-export type LoadRemoteEntryOptions =
-  | LoadRemoteEntryScriptOptions
-  | LoadRemoteEntryEsmOptions;
 
-export type LoadRemoteEntryScriptOptions = {
-  type?: 'script';
-  remoteEntry: string;
-  remoteName: string;
-};
-
-export type LoadRemoteEntryEsmOptions = {
-  type: 'module';
-  remoteEntry: string;
-};
-
-export async function loadRemoteEntry(
-  remoteEntry: string,
-  remoteName: string
-): Promise<void>;
-export async function loadRemoteEntry(
-  options: LoadRemoteEntryOptions
-): Promise<void>;
-export async function loadRemoteEntry(
-  remoteEntryOrOptions: string | LoadRemoteEntryOptions,
-  remoteName?: string
-): Promise<void> {
-  if (typeof remoteEntryOrOptions === 'string') {
-    const remoteEntry = remoteEntryOrOptions;
-    return await loadRemoteScriptEntry(remoteEntry, remoteName);
-  } else if (remoteEntryOrOptions.type === 'script') {
-    const options = remoteEntryOrOptions;
-    return await loadRemoteScriptEntry(options.remoteEntry, options.remoteName);
-  } else if (remoteEntryOrOptions.type === 'module') {
-    const options = remoteEntryOrOptions;
-    await loadRemoteModuleEntry(options.remoteEntry);
-  }
-}
-
-async function loadRemoteModuleEntry(remoteEntry: string): Promise<void> {
-  if (containerMap[remoteEntry]) {
-    return Promise.resolve();
-  }
-  return await import(/* webpackIgnore:true */ remoteEntry).then(
-    (container) => {
-      initRemote(container, remoteEntry);
-      containerMap[remoteEntry] = container;
-    }
-  );
-}
-
-async function loadRemoteScriptEntry(
-  remoteEntry: string,
-  remoteName?: string
-): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-
-    if(!remoteName) throw new Error(`undefined [remoteName]`)
-    // Is remoteEntry already loaded?
-    if (containerMap[remoteName]) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = remoteEntry;
-
-    script.onerror = reject;
-
-    script.onload = () => {
-      
-      const container = (window as any)[remoteName] as Container;
-      initRemote(container, remoteName);
-      containerMap[remoteName] = container;
-      resolve();
-    };
-
-    document.body.appendChild(script);
-  });
-}
-
-export type LoadRemoteModuleOptions =
-  | LoadRemoteModuleScriptOptions
-  | LoadRemoteModuleEsmOptions
-  | LoadRemoteModuleManifestOptions;
-
-export type LoadRemoteModuleScriptOptions = {
-  type?: 'script';
-  remoteEntry?: string;
-  remoteName?: string;
-  exposedModule?: string;
-};
-
-export type LoadRemoteModuleEsmOptions = {
-  type: 'module';
-  remoteEntry?: string;
-  exposedModule?: string;
-};
-
-export type LoadRemoteModuleManifestOptions = {
-  type: 'manifest';
-  remoteName?: string;
-  exposedModule?: string;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function loadRemoteModule<T = any>(
-  remoteName: string,
+/**
+ * obter o recurso exposto
+ * 
+ * @param container 
+ * @param exposedModule 
+ * @returns 
+ */
+async function lookupExposedModule<T>(
+  container: Container,
   exposedModule: string
-): Promise<T>;
-export async function loadRemoteModule<T = any>(
-  options: LoadRemoteModuleOptions
-): Promise<T>;
-export async function loadRemoteModule<T = any>(
-  optionsOrRemoteName: LoadRemoteModuleOptions | string,
-  exposedModule?: string
 ): Promise<T> {
-  let loadRemoteEntryOptions: any;
-  let key: any;
-  let remoteEntry: string;
-  let options: LoadRemoteModuleOptions;
-
-  if (typeof optionsOrRemoteName === 'string') {
-
-    if(!exposedModule) throw new Error('undefined [exposedModule]')
-
-    options = {
-      type: 'manifest',
-      remoteName: optionsOrRemoteName,
-      exposedModule: exposedModule,
-    };
-  } else {
-    options = optionsOrRemoteName;
-  }
-
-  // To support legacy API (< ng 13)
-  if (!options.type) {
-    const hasManifest = Object.keys(config).length > 0;
-    options.type = hasManifest ? undefined : 'script';
-    // options.type = hasManifest ? 'manifest' : 'script';
-  }
-
-  if (options.type === 'manifest') {
-    const manifestEntry = config[options.remoteName??'not-found'];
-    if (!manifestEntry) {
-      throw new Error('Manifest does not contain ' + options.remoteName);
-    }
-    options = {
-      type: manifestEntry.type,
-      exposedModule: options.exposedModule,
-      remoteEntry: manifestEntry.remoteEntry,
-      remoteName:
-        manifestEntry.type === 'script' ? options.remoteName : undefined,
-    };
-    remoteEntry = manifestEntry.remoteEntry;
-  } else {
-    remoteEntry = options.remoteEntry??"";
-  }
-
-
-  if (options.type === 'script') {
-    loadRemoteEntryOptions = {
-      type: 'script',
-      remoteEntry: options.remoteEntry??"not-found",
-      remoteName: options.remoteName??"not-found",
-    };
-    key = options.remoteName??"";
-  } else if (options.type === 'module') {
-    loadRemoteEntryOptions = {
-      type: 'module',
-      remoteEntry: options.remoteEntry??"not-found",
-    };
-    key = options.remoteEntry??"not-found";
-  }
-
-  if (remoteEntry) {
-    await loadRemoteEntry(loadRemoteEntryOptions);
-  }
-
-  return await lookupExposedModule<T>(key, options.exposedModule??'not-found');
+  const factory = await container.get(exposedModule);
+  const Module = factory();
+  return Module as T;
 }
 
-export async function setManifest(
-  manifest: ManifestFile,
-  skipRemoteEntries = false
-) {
-  config = parseConfig(manifest);
-
-  if (!skipRemoteEntries) {
-    await loadRemoteEntries();
+/**
+ * carrega modulo remoto.
+ * 
+ * caso haja erro no carregamento, a url passada internamente será modificada para nova tentativa.
+ * 
+ * @param remoteEntry URL do remote entry
+ * @returns modulo carregado
+ */
+export async function loadRemoteModule<T>(config:LoadRemoveModuleArg): Promise<T> {
+  const { exposedModule, remoteEntry } = config
+  const cachedContainer = containerMap.get(remoteEntry)
+  if (cachedContainer) {
+    return await lookupExposedModule<T>(cachedContainer, exposedModule);
   }
+
+  const parsedRemoteEntry = remoteRetryMap.get(remoteEntry) ? updateRemoteEntryUrl(remoteEntry): remoteEntry;
+
+  const container = await import(/* webpackIgnore:true */ parsedRemoteEntry)
+                            .catch((error)=>{
+
+                              remoteRetryMap.set(remoteEntry, true)
+
+                              throw error
+                            });
+
+  remoteRetryMap.delete(remoteEntry)
+
+  await initRemote(container, remoteEntry);
+
+  containerMap.set(remoteEntry, container);
+
+  return await lookupExposedModule<T>(container, exposedModule);
 }
 
-export function getManifest<T extends Manifest>(): T {
-  return config as T;
-}
 
-export async function initFederation(
-  manifest: string | ManifestFile,
-  skipRemoteEntries = false
-): Promise<void> {
-  if (typeof manifest === 'string') {
-    return loadManifest(manifest, skipRemoteEntries);
-  } else {
-    return setManifest(manifest, skipRemoteEntries);
-  }
-}
+/**
+ * aplica um _query string_ para renovar da _URL_ passada
+ * 
+ * @param remoteEntryUrl 
+ */
+function updateRemoteEntryUrl(remoteEntryUrl:string){
+  const url = new URL(remoteEntryUrl)
 
-export async function loadManifest(
-  configFile: string,
-  skipRemoteEntries = false
-): Promise<void> {
-  const result = await fetch(configFile);
+  url.searchParams.append(Date.now().toString(36), '1')
 
-  if (!result.ok) {
-    throw Error('could not load configFile: ' + configFile);
-  }
-
-  config = parseConfig(await result.json());
-
-  if (!skipRemoteEntries) {
-    await loadRemoteEntries();
-  }
-}
-
-function parseConfig(config: ManifestFile): Manifest {
-  const result: Manifest = {};
-  for (const key in config) {
-    const value = config[key];
-
-    let entry: RemoteConfig;
-    if (typeof value === 'string') {
-      entry = {
-        remoteEntry: value,
-        type: 'module',
-      };
-    } else {
-      entry = {
-        ...value,
-        type: value.type || 'module',
-      };
-    }
-
-    result[key] = entry;
-  }
-  return result;
-}
-
-async function loadRemoteEntries() {
-  const promises: Promise<void>[] = [];
-
-  for (const key in config) {
-    const entry = config[key];
-
-    if (entry.type === 'module') {
-      promises.push(
-        loadRemoteEntry({ type: 'module', remoteEntry: entry.remoteEntry })
-      );
-    } else {
-      promises.push(
-        loadRemoteEntry({
-          type: 'script',
-          remoteEntry: entry.remoteEntry,
-          remoteName: key,
-        })
-      );
-    }
-  }
-
-  await Promise.all(promises);
+  return url.toString()
 }
