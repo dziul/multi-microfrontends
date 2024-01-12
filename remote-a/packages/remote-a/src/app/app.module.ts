@@ -1,5 +1,5 @@
-import { ApplicationRef, Component, DoBootstrap, NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+import { ApplicationRef, Component, DoBootstrap, NgModule, inject } from '@angular/core';
+import { BrowserModule, ɵDomSharedStylesHost } from '@angular/platform-browser';
 import { RouterModule, Routes } from '@angular/router';
 import { AppComponent } from './app.component';
 import { createCustomElement } from '@angular/elements';
@@ -15,14 +15,6 @@ class EmptyComponent{}
 
 
 const routes:Routes = [
-  {
-    path: '',
-    loadChildren: () => import('./features/home').then(m=>m.HomeModule)
-  },
-  {
-    path: 'plants',
-    loadChildren: () => import('./features/plants').then(m=>m.PlantsModule)
-  },
   {
     path: '**',
     component: EmptyComponent
@@ -42,8 +34,14 @@ const routes:Routes = [
   bootstrap: []
 })
 export class AppModule implements DoBootstrap {
+  constructor(){
+
+    inject(ɵDomSharedStylesHost).removeHost(window.document.head)
+    
+  }
 
   ngDoBootstrap(appRef: ApplicationRef ): void {
+
     const customElement = createCustomElement(AppComponent, {
       injector: appRef.injector
     })

@@ -5,4 +5,11 @@ module.exports = withModuleFederation({
   exposes: {
     './Module': 'packages/remote-a/src/remote-bootstrap.ts',
   },
+  shared: (libraryName, sharedConfig) => {
+
+    // if(libraryName.startsWith('@angular/')) return false
+
+    return {...sharedConfig, singleton:false }
+
+  }
 });

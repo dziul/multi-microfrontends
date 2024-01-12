@@ -13,4 +13,15 @@
     color: var(--color-primary)
   }
 
+
+
+  nav ul {
+
+    display: block;
+    margin: 0;
+    padding: 0;
+
+    li { display: inline-block;margin: 0 8px;}
+  }
+
 }
