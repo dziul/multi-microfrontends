@@ -5,7 +5,7 @@ import {
     ViewChild,
     ViewEncapsulation,
   } from '@angular/core';
-  import { ActivatedRoute } from '@angular/router';
+  import { ActivatedRoute, Router } from '@angular/router';
 import { loadRemoteModule } from './route.util';
 
  export interface WrapperComponentRouteConfig {
@@ -25,16 +25,20 @@ import { loadRemoteModule } from './route.util';
     @ViewChild('vc', { read: ElementRef, static: true })
     vc!: ElementRef;
 
-    constructor(private route: ActivatedRoute) {}
+    constructor(private route: ActivatedRoute, private router:Router) {}
 
     ngAfterContentInit(): void {
       const elementName = this.route.snapshot.data['elementName'];
       const remoteEntry = this.route.snapshot.data['remoteEntry'];
       const path = this.route.snapshot.data['path'];
 
-      const element = document.createElement(elementName) as HTMLElement
+      const element = document.createElement(elementName) as HTMLElement & {mfe:{hostRouter: Router, rootPath:string, activatedRouteUrl:string}}
 
-      element.setAttribute('path', path)
+      element.mfe = {
+        activatedRouteUrl: this.route.snapshot.url.join('/'),
+        hostRouter: this.router,
+        rootPath: path
+      }
 
       this.vc.nativeElement.appendChild(element);
 

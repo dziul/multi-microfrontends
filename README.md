@@ -50,8 +50,37 @@ uma _POC_ referente utilização de multi micro-frontends usando module-federati
     _falha ao usar dep `@angular/*` de mesmo numero MAJOR da versão entre remote. Solução evitar de compartilhar esses deps._
 - [ ] teste de integração de rotas entre mfes
   - [x] teste para passar o _path_ para uso interno do mfe. se concatenado. ao carregar aplicar as rotas com os paths atualizados
-  - [ ] proposta é criar um serviço que consome esse 'prefix' _path_
+  - [x] proposta é criar um serviço que consome esse 'prefix' _path_
 - [ ] teste de armazenamento de dados entre mfes sem usar o escopo global `window`
+- [x] testar possibilidade de passar dados ao mfe via `Input` ou propriedade do _DOM_ do elemento.
+
+  via atributo (`Input`) está limitado apenas passagem de _string_. Via propriedade _DOM_ possibilidade de add qualquer tipo de valor.
+
+  - criar uma interface que seja compartilhado entre o mfe e o `WrapperComponent`. Interface usada:
+    ```ts
+    interface MfeConfiguration {
+      mfe: {
+        /**
+         * `Router` do host, para poder o mfe controlar
+         */
+        hostRouter: Router,
+        /**
+         * _path_ raiz das rotas do mfe
+         */
+        rootPath:string,
+        /**
+         * path da rota ativa, direciona para o valor definido quando o mfe é iniciado.
+         */
+        activatedRouteUrl:string,
+        /**
+         * nome do elemento do mfe. obrigatorio para identificar
+         */
+        //elementName: string
+      }
+    }
+    ```
+  - ...
+- [] ... 
 
 ### Referencias
 

@@ -1,6 +1,14 @@
-import { Component, Input, OnInit, VERSION, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, VERSION, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
+import { RouterService } from './core/router.service';
 
+let routerConfigDefined = false
+@Component({
+   template: '<router-outlet></router-outlet>'
+})
+export class EntryComponent {
+
+}
 
 
 @Component({
@@ -9,8 +17,10 @@ import { Router } from '@angular/router';
   template: `
 
   <ul>
-    <li><a [routerLink]="path">home</a></li>
-    <li><a [routerLink]="path + '/plants'">plants</a></li>
+    <li><a [routerLink]="path">home -link</a></li>
+    <li><button (click)="gotTo('plants')">plants -button</button></li>
+    <li><a [routerLink]="[path, 'plants']">plants -link</a></li>
+    <li><button (click)="gotTo('example', true)">example -for host</button></li>
   </ul>
 
   <p>remote-a</p>
@@ -20,39 +30,54 @@ import { Router } from '@angular/router';
   <router-outlet></router-outlet>
   `,
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
 
-  @Input() path=''
+  protected path:string
 
 
 
   protected version = VERSION.full
 
-  constructor(private router: Router){
+  constructor(
+    private router: Router,
+    private elementRef: ElementRef<HTMLElement&{mfe?:{hostRouter?: Router, rootPath?:string, activatedRouteUrl?:string}}>,
+    private routerService: RouterService){
 
-    console.log('>>> AppComponent.constructor')
+    console.log('>>> AppComponent.constructor' )
 
+
+
+    const { nativeElement } = this.elementRef
+    const {rootPath='', activatedRouteUrl='', hostRouter } = nativeElement.mfe??{}
+
+    this.path = rootPath
+
+    if(!routerConfigDefined) {
+      const children = this.router.config
+      this.router.resetConfig([{
+        children,
+        path: rootPath
+      }])
+
+      routerConfigDefined = true
+    }
 
     
+    this.router.initialNavigation() // necessário iniciar navegação manualmente
+
+    this.routerService.setRootPath(rootPath)
+
+    if(hostRouter) this.routerService.setRootRouter(hostRouter)
+    if(activatedRouteUrl) this.router.navigateByUrl(activatedRouteUrl)
 
   }
 
-  ngOnInit(): void {
+
+  
 
 
-    this.router.resetConfig([{
-      path: this.path,
-      pathMatch: 'full',
-      loadChildren: () => import('./features/home').then(m=>m.HomeModule)
-    },
-    {
-      path: this.path + '/plants',
-      loadChildren: () => import('./features/plants').then(m=>m.PlantsModule)
-    }])
-
-    this.router.initialNavigation() // necessário iniciar navegação manualmente
-    this.router.navigateByUrl(this.path)
-
-    // this.router.navigateByUrl('/home')
+  gotTo(route:string, host=false){
+    if(host) return this.routerService.host.navigateByUrl(route)
+    return this.routerService.navigateByUrl(route)
   }
 }

@@ -9,7 +9,8 @@ module.exports = withModuleFederation({
 
     // if(libraryName.startsWith('@angular/')) return false
 
-    return {...sharedConfig, singleton:false }
+    const { requiredVersion } = sharedConfig
+    return { requiredVersion, version:requiredVersion,  singleton:false}
 
   }
 });

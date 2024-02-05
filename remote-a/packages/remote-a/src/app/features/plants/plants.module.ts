@@ -11,10 +11,16 @@ import { RouterModule } from '@angular/router';
   ],
   imports: [
     CommonModule,
-    RouterModule.forChild([{
-      path: '',
-      component: PlantsComponent
-    }])
+    RouterModule.forChild([
+      {
+        path:  'bambu',
+        loadChildren: () => import('./bambu/bambu.module').then(m=>m.BambuModule)
+      },
+      {
+        path: '',
+        component: PlantsComponent,
+      },
+    ])
   ]
 })
 export class PlantsModule { }

@@ -1,5 +1,6 @@
-import { Component, OnInit, VERSION, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, OnInit, VERSION, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
+import { Subscription, timer } from 'rxjs';
 
 @Component({
   styleUrls: ['./app.component.scss'],
@@ -15,13 +16,18 @@ import { Router } from '@angular/router';
 
   <p class="label-version"><strong>Angular v{{version}}</strong></p>
 
+  <p>{{tick}}</p>
+
   <router-outlet></router-outlet>
   `,
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
 
 
   protected version = VERSION.full
+
+  protected tick=0
+  private subscription = new Subscription()
 
   constructor(private router: Router){
 
@@ -31,6 +37,12 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.router.initialNavigation() // necessário iniciar navegação manualmente
 
-    // this.router.navigateByUrl('/home')
+    this.subscription.add(timer(0,1000).subscribe((tick)=>{
+        this.tick = tick
+    }))
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe()
   }
 }

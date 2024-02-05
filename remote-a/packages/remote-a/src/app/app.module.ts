@@ -1,9 +1,8 @@
 import { ApplicationRef, Component, DoBootstrap, NgModule, inject } from '@angular/core';
 import { BrowserModule, ɵDomSharedStylesHost } from '@angular/platform-browser';
 import { RouterModule, Routes } from '@angular/router';
-import { AppComponent } from './app.component';
+import { AppComponent, EntryComponent } from './app.component';
 import { createCustomElement } from '@angular/elements';
-
 
 @Component({
   template: `
@@ -16,6 +15,16 @@ class EmptyComponent{}
 
 const routes:Routes = [
   {
+    path: 'plants',
+    loadChildren: () => import('./features/plants').then(m=>m.PlantsModule)
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadChildren: () => import('./features/home').then(m=>m.HomeModule)
+  },
+  
+  {
     path: '**',
     component: EmptyComponent
   }
@@ -23,13 +32,14 @@ const routes:Routes = [
 
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, EntryComponent],
   imports: [
     BrowserModule,
     RouterModule.forRoot(
       routes,
       { scrollPositionRestoration: 'top' }
     ),
+    
   ],
   bootstrap: []
 })
